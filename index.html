@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="A NeurIPS 2026 paper on purifying backdoored LoRA adapters with null-space projection.">
+<meta name="color-scheme" content="light">
+<title>Backdoor Purification for LoRA-Tuned LLMs via Null-Space Projection</title>
+<style>
+:root{--ink:#182339;--quiet:#47566e;--paper:#f8fafc;--line:#d9e2ef;--blue:#1d4ed8;--pale:#eaf1ff;--navy:#12213b;--mint:#8debd1;--serif:Georgia,serif;--sans:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:1rem/1.65 var(--sans)}
+a{color:var(--blue);text-underline-offset:.2em}
+a:focus-visible,button:focus-visible,pre:focus-visible{outline:3px solid #4285ef;outline-offset:4px}
+.wrap{width:min(1100px,calc(100% - 2.5rem));margin-inline:auto}
+nav{border-bottom:1px solid var(--line);background:#fff}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;min-height:68px;gap:1rem}
+.wordmark{display:flex;align-items:center;gap:.7rem;font-weight:750;color:var(--ink);text-decoration:none}
+.mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--navy);color:var(--mint);font:1.25rem var(--serif)}
+.navlinks{display:flex;flex-wrap:wrap;gap:clamp(.7rem,2vw,1.6rem)}
+.navlinks a{color:var(--quiet);font-size:.85rem;text-decoration:none}
+.navlinks a:hover{text-decoration:underline}
+.hero{position:relative;overflow:hidden;background:radial-gradient(ellipse at 90% 8%,#28456f,transparent 57%),var(--navy);color:#fff;padding:clamp(4rem,10vw,8rem) 0 clamp(3.4rem,7vw,5.5rem)}
+.hero::after{content:"";position:absolute;pointer-events:none;inset:0;background-image:linear-gradient(#a0b8de15 1px,transparent 1px),linear-gradient(90deg,#a0b8de15 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(115deg,transparent 28%,#000)}
+.hero .wrap{position:relative;z-index:1}
+.eyebrow{font-size:.77rem;font-weight:780;letter-spacing:.13em;text-transform:uppercase;color:var(--blue);margin:0 0 .7rem}
+.hero .eyebrow{color:var(--mint)}
+h1,h2{font-family:var(--serif);line-height:1.09;font-weight:500;letter-spacing:-.035em;margin:0}
+h1{font-size:clamp(2.7rem,6.4vw,5.55rem);max-width:16.5ch;text-wrap:balance}
+h2{font-size:clamp(2.15rem,4.2vw,3.4rem);text-wrap:balance}
+h3{font-size:1.15rem;margin:.35rem 0 .45rem}
+.hero .authors{margin:1.45rem 0 .7rem;color:#fff;font-weight:650}
+.hero .tagline{color:#d2dff3;max-width:57ch;margin:0 0 1.65rem}
+.buttons{display:flex;flex-wrap:wrap;gap:.65rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:.45rem 1.05rem;border:1px solid #9bb5d9;border-radius:8px;color:#fff;text-decoration:none;font-weight:650;font-size:.9rem}
+.btn:hover{background:#354f78}
+.btn.primary{background:var(--mint);border-color:var(--mint);color:#142737}
+.btn.primary:hover{background:#baf6e5}
+section{padding:clamp(3rem,6vw,5.4rem) 0;border-bottom:1px solid var(--line)}
+.split{display:grid;grid-template-columns:minmax(230px,.8fr) minmax(0,1.2fr);gap:clamp(1rem,5vw,4.4rem);align-items:start}
+.copy{color:var(--quiet);max-width:66ch}
+.copy p:first-child{margin-top:0}
+.copy p:last-child{margin-bottom:0}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;list-style:none;padding:0;margin:1.8rem 0 0}
+.step{border:1px solid var(--line);background:#fff;border-radius:14px;padding:1.3rem}
+.step svg{width:100%;height:114px;display:block;background:var(--pale);border-radius:8px}
+.step p{color:var(--quiet);margin:.5rem 0 0;font-size:.94rem}
+.num{font-size:.78rem;font-weight:800;color:var(--blue);letter-spacing:.1em;display:block;margin-top:1.15rem}
+.results{background:#edf3ff}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0 .75rem}
+.metric{padding:1.4rem;border:1px solid #cfddf4;background:#fff;border-radius:14px}
+.metric strong{display:block;font:clamp(1.75rem,4.6vw,3.25rem)/1.1 var(--serif);margin:.3rem 0;color:var(--blue);letter-spacing:-.04em}
+.metric span,.footnote{font-size:.86rem;color:var(--quiet)}
+.codebox{position:relative;background:var(--navy);border-radius:12px;color:#f1f6ff;padding:1rem 1.15rem}
+.codebox pre{margin:0;overflow:auto;font:.88rem/1.65 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.copybar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.9rem;color:#c7daf8;font-size:.82rem;font-weight:700}
+button{font:inherit;background:transparent;color:#fff;border:1px solid #7898c4;border-radius:6px;cursor:pointer;padding:.3rem .65rem}
+button:hover{background:#365275}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.4rem 1rem;padding-block:1.4rem;color:var(--quiet);font-size:.86rem}
+@media(max-width:740px){.split{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.step svg{height:96px}.navlinks{display:none}}
+@media(max-width:420px){.metrics{grid-template-columns:1fr}.wrap{width:calc(100% - 2rem)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body id="top">
+<nav aria-label="Page navigation">
+  <div class="wrap"><a class="wordmark" href="#top"><span class="mark" aria-hidden="true">Π</span>LoRA Null-Space Projection</a><div class="navlinks"><a href="#method">Method</a><a href="#results">Results</a><a href="#scope">Scope</a><a href="#citation">Citation</a></div></div>
+</nav>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">NeurIPS 2026 · Poster</p>
+    <h1>Backdoor Purification for LoRA-Tuned LLMs via Null-Space Projection</h1>
+    <p class="authors">Jianwei Li &nbsp;·&nbsp; Jung-Eun Kim</p>
+    <p class="tagline">A weight-space defense that projects suspect LoRA updates away from estimated backdoor directions without retraining the suspect adapter.</p>
+    <div class="buttons">
+      <a class="btn primary" href="https://openreview.net/pdf?id=NAtwr6xj7t">Read the paper <span aria-hidden="true">&nbsp;↗</span></a>
+      <a class="btn" href="https://openreview.net/forum?id=NAtwr6xj7t">OpenReview <span aria-hidden="true">&nbsp;↗</span></a>
+      <a class="btn" href="https://github.com/">Code (placeholder) <span aria-hidden="true">&nbsp;↗</span></a>
+    </div>
+  </div>
+</header>
+<main>
+<section aria-labelledby="overview-heading">
+  <div class="wrap split">
+    <div><p class="eyebrow">01 / Overview</p><h2 id="overview-heading">Can we remove a backdoor from a LoRA update?</h2></div>
+    <div class="copy"><p>A LoRA adapter can carry both useful skills and a hidden association between a trigger and an attacker’s intended behavior. The defense uses the adapter’s weight update as the point of intervention.</p><p>The method uses independently constructed backdoored variants to estimate directions associated with a specified behavior. It then projects the suspect update away from those directions, aiming to reduce attack success while preserving useful behavior.</p></div>
+  </div>
+</section>
+<section id="method" aria-labelledby="method-heading">
+  <div class="wrap">
+    <p class="eyebrow">02 / Method</p><h2 id="method-heading">From reference variants to a purified update</h2>
+    <ol class="steps" aria-label="Three stages of the purification method">
+      <li class="step">
+        <svg viewBox="0 0 270 114" aria-hidden="true"><g fill="#fff" stroke="#81a5e6" stroke-width="2"><rect x="67" y="25" width="57" height="55" rx="7"/><rect x="106" y="31" width="57" height="55" rx="7"/><rect x="145" y="37" width="57" height="55" rx="7"/></g><g stroke="#1d4ed8" stroke-width="3" stroke-linecap="round"><path d="M158 74l12-13 10 7 10-17" fill="none"/><path d="M80 50h13m26 9h12"/></g></svg>
+        <span class="num">STEP 01</span><h3>Construct reference variants</h3><p>Train LoRA variants for the behavior of interest to provide a reference for estimating backdoor directions.</p>
+      </li>
+      <li class="step">
+        <svg viewBox="0 0 270 114" aria-hidden="true"><g stroke="#9fb6da" stroke-width="1.5"><path d="M61 85h147M89 98V22"/></g><g stroke="#618ce3" stroke-width="2.5" fill="none"><path d="M89 85l97-47m-97 47l90-28m-90 28l81-57"/></g><path d="M89 85l95-43m-13 1l13-1-7 11" stroke="#1d4ed8" fill="none" stroke-width="3" stroke-linecap="round"/></svg>
+        <span class="num">STEP 02</span><h3>Estimate backdoor directions</h3><p>Aggregate directions across variants and construct orthogonal complements in the input and output channels.</p>
+      </li>
+      <li class="step">
+        <svg viewBox="0 0 270 114" aria-hidden="true"><path d="M61 80l56-43h90l-56 43z" fill="#c9dcff" stroke="#81a5e6" stroke-width="2"/><path d="M98 73l75-13m-12-4l12 4-10 7" stroke="#1d4ed8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M173 24v35M98 73l75-49" stroke="#526f9c" stroke-width="2" stroke-dasharray="4 4" fill="none"/></svg>
+        <span class="num">STEP 03</span><h3>Project the suspect update</h3><p>Apply the projectors to the LoRA update. The suspect adapter itself does not require gradient-based retraining.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+<section class="results" id="results" aria-labelledby="results-heading">
+  <div class="wrap split">
+    <div><p class="eyebrow">03 / Selected result</p><h2 id="results-heading">Attack success fell while measured utility held</h2></div>
+    <div>
+      <p class="copy">LLaMA2-7B-Chat on sentiment steering, averaged over the five attacks in Table 2.</p>
+      <div class="metrics">
+        <div class="metric"><span>Attack success rate</span><strong>100.0% → 2.8%</strong><span>Lower is better</span></div>
+        <div class="metric"><span>Downstream utility (GSM8K)</span><strong>27.81 → 27.93</strong><span>Higher is better</span></div>
+      </div>
+      <p class="footnote">Before → after purification. The composite-trigger attack (CTBA) uses an attack-specific rank-4 aggregation; the other rows use consensus aggregation. See Table 2 and Appendix F.7 in the <a href="https://openreview.net/pdf?id=NAtwr6xj7t">paper</a>.</p>
+    </div>
+  </div>
+</section>
+<section id="scope" aria-labelledby="scope-heading">
+  <div class="wrap split">
+    <div><p class="eyebrow">04 / Scope</p><h2 id="scope-heading">What the defense assumes</h2></div>
+    <div class="copy"><p>The defender has access to the suspect LoRA adapter and its corresponding base model, and specifies the behavior class to defend against. The method does not require knowing the exact trigger or target, or obtaining a clean counterpart to the suspect adapter.</p><p>The experiments support transfer across attacks within a behavior class. The paper also reports a failed transfer across behavior classes, so projectors should not be assumed to generalize to arbitrary behaviors.</p></div>
+  </div>
+</section>
+<section id="citation" aria-labelledby="citation-heading">
+  <div class="wrap split">
+    <div><p class="eyebrow">05 / Citation</p><h2 id="citation-heading">Cite this work</h2></div>
+    <div class="codebox">
+      <div class="copybar"><span>BibTeX</span><button type="button" id="copy" hidden>Copy citation</button><span id="copy-status" role="status"></span></div>
+      <pre id="bib" tabindex="0">@inproceedings{li2026backdoor,
+  title = {Backdoor Purification for LoRA-Tuned LLMs via Null-Space Projection},
+  author = {Li, Jianwei and Kim, Jung-Eun},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year = {2026},
+  url = {https://openreview.net/forum?id=NAtwr6xj7t}
+}</pre>
+    </div>
+  </div>
+</section>
+</main>
+<footer><div class="wrap"><span>Jianwei Li and Jung-Eun Kim · NeurIPS 2026</span><a href="#top">Back to top ↑</a></div></footer>
+<script>
+const button=document.querySelector('#copy');
+const status=document.querySelector('#copy-status');
+if(navigator.clipboard?.writeText){
+  button.hidden=false;
+  button.addEventListener('click',async()=>{
+    try{
+      await navigator.clipboard.writeText(document.querySelector('#bib').textContent);
+      status.textContent='Citation copied.';
+    }catch{
+      status.textContent='Select and copy the citation below.';
+    }
+  });
+}
+</script>
+</body>
+</html>
